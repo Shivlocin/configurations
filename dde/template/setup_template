@@ -1,0 +1,6 @@
+#!/bin/bash
+
+sudo apt update
+echo 'export HISTFILE=$HOME/.bash_history' >> $HOME/.bashrc
+
+# Insert project specific setup commands here

@@ -1,0 +1,46 @@
+#!/bin/bash
+
+echo "Building the ${pretty_name} Docker Development Environment."
+
+docker build                                                                   \
+    -t setup_${name}_image                                                     \
+    --build-arg BASE_IMAGE=${base_image}                                       \
+    --build-arg ENTRYPOINT=${entrypoint}                                       \
+    --build-arg USER=${user}                                                   \
+    /opt/g99_common/dde/base_image/
+ec=$?
+[[ $ec ]] || fail "Failed to build the base image" $ec
+
+# Run the setup scripts
+docker run                                                                     \
+    -it                                                                        \
+    --name "setup_${name}"                                                     \
+    --network=host                                                             \
+    -e HOST_USER_ID="$(id -u)"                                                 \
+    -e HOST_USER_GID="$(id -g)"                                                \
+    $ssh_auth_sock                                                             \
+    -v "$setup_script_real:$dde_home/$setup_script_base"                       \
+    $ssh_auth_vol                                                              \
+    -v $HOME/.ssh:$dde_home/.ssh                                               \
+    -w $dde_home                                                               \
+    setup_${name}_image                                                        \
+    $dde_home/${setup_script_base}
+ec=$?
+[[ $ec ]] || (docker rm "setup_${name}"                                        \
+    && fail "Failed to run the setup scripts" $ec)
+
+# Commit the setup container to an image
+docker commit                                                                  \
+    -c "ENTRYPOINT [\"/${entrypoint}\"]"                                       \
+    -a $USER                                                                   \
+    -m "Docker Development Environment for ${pretty_name}"                     \
+    "setup_${name}"                                                            \
+    ${name}
+
+# Remove the setup container
+docker rm "setup_${name}"
+docker rmi "setup_${name}_image"
+
+[[ -d ${HOME}/bin ]] || mkdir ${HOME}/bin
+[[ -f ${HOME}/bin/${name} ]] || \
+    ln -s $(realpath $SCRIPT_DIR/$(basename $0)) ${HOME}/bin/${name}

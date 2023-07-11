@@ -1,0 +1,48 @@
+#!/bin/bash
+
+echo
+echo -e "\e[34mInstalling Docker\e[0m"
+echo
+sudo apt -y install apt-transport-https \
+  ca-certificates \
+  curl gnupg-agent \
+  software-properties-common
+
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository \
+  "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+sudo apt update
+sudo apt install --yes \
+  docker-ce
+
+if cut -d: -f1 /etc/group | sort | grep -q docker; then
+  sudo newgrp docker
+  sudo groupadd docker
+
+else
+  echo
+  echo -e "\e[34mDocker group already exists.\e[0m"
+  echo
+fi
+
+sudo usermod -a -G docker "$USER"
+sudo systemctl enable docker
+sudo dockerd
+
+if ! id -nG "$USER" | grep -qw "docker"; then
+  # Docker group hasn't taken effect yet. Force it here.
+  echo "You are not registered for the docker group yet. You should log out"
+  echo "and log in again so it takes effect."
+  exec su -l "$USER"
+fi
+
+if [[ -f "/opt/g99_common/dde/http-proxy.conf" && ! -f \
+  "/etc/systemd/system/docker.service.d/http-proxy.conf" ]]; then
+  sudo install -d /etc/systemd/system/docker.service.d &&
+    cp /opt/g99_common/dde/http-proxy.conf /etc/systemd/system/docker.service.d
+fi
+
+echo
+echo -e "\e[34mDocker installed. Reboot and run the script again.\e[0m"
+echo

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+sudo apt update
+echo 'export HISTFILE=/home/test/host/.bash_history' >> /home/test/.bashrc

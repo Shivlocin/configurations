@@ -1,0 +1,14 @@
+#!/bin/bash
+
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+name="test"
+pretty_name="TEST"
+base_image="ubuntu:latest"
+remote="d9nexus:19443/g99_common/dde"
+setup_script=${SCRIPT_DIR}/setup_test
+workspace=${SCRIPT_DIR}/test_workspace
+user="test"
+welcome=$(< $SCRIPT_DIR/welcome.txt)
+
+source /opt/g99_common/dde/dde

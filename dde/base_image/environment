@@ -1,0 +1,6 @@
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+http_proxy=http://llproxy.llan.ll.mit.edu:8080/
+https_proxy=http://llproxy.llan.ll.mit.edu:8080/
+ftp_proxy=http://llproxy.llan.ll.mit.edu:8080/
+ALL_PROXY=http://llproxy.llan.ll.mit.edu:8080/
+no_proxy=localhost,127.0.0.1,llan.ll.mit.edu,short,g99-gitlab,llsat6

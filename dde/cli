@@ -1,0 +1,99 @@
+#!/bin/bash
+
+# CLI help and documentation
+options="\n Available options are:\n"
+options="$options\t -h  | --help    \t Prints help information.\n\n"
+options="$options\t -r  | --rebuild \t Rebuild the environment.\n\n"
+options="$options\t -t  | --tag     \t Specify the image tag to target instead of 'latest'.\n\n"
+options="$options\t -x  | --execute \t Execute a given command inside of a container. \n"
+options="$options\t                 \t  Will likely want to prepend '-c'.\n\n"
+options="$options\t -R | --remote   \t Spawn a container which is detached and listening on the\n"
+options="$options\t                 \t  specified port for ssh requests.\n\n"
+options="$options\t -s  | --ssh     \t ssh into a container at the specified port.\n\n"
+options="$options\t -p  | --push    \t Push the image to the remote repository.\n\n"
+
+clihelp="\t This script is an entrypoint for a docker image with all of the\n"
+clihelp="$clihelp\t tools/dependencies/etc necessary for a developer working on the $pretty_name\n"
+clihelp="$clihelp\t program.\n\n"
+clihelp="$clihelp\t On execution it will: \n"
+clihelp="$clihelp\t\t - Check the system for docker & install if necessary.\n"
+clihelp="$clihelp\t\t - Check for an image/tag combination ($name:latest by default).\n"
+clihelp="$clihelp\t\t - Build image if necessary.\n"
+clihelp="$clihelp\t\t - Install an executable in the users ~/bin directory.\n"
+clihelp="$clihelp\t\t - Act as an interface through which containers can be launched & accessed.\n"
+
+################################
+####                        ####
+####    CLI Arg Handling    ####
+####                        ####
+################################
+
+rebuild=false
+cmd=""
+image_tag=latest
+network="--network=host"
+mount_tmp="-v /tmp:/tmp"
+opt_env_args=""
+container_type="-i"
+start_ssh_session=false
+push=false
+
+while [ $# -gt 0 ]; do
+ key="$1"
+
+ case $key in
+ -h | --help)
+   echo -e "$clihelp"
+   echo -e "$options"
+   exit 0
+   shift
+   ;;
+ # TODO: Fix/update rebuild process to take advantage of docker layering.
+ -r | --rebuild)
+   rebuild=true
+   shift
+   ;;
+ -t | --tag)
+   image_tag=$2
+   shift
+   shift
+   ;;
+ -x | --execute)
+   cmd=$2
+   shift
+   shift
+   ;;
+ -R | --remote)
+   network="-p127.0.0.1:$2:22"
+   container_type="-d"
+   opt_env_args="-e ENABLE_SSH=true"
+   shift
+   shift
+   ;;
+ -s | --ssh)
+   start_ssh_session=true
+   port=$2
+   shift
+   shift
+   ;;
+ -p | --push)
+   push=true
+   shift
+   ;;
+ *)
+   echo -e "$options"
+   exit 1
+   shift
+   ;;
+ esac
+done
+
+if $push; then
+  [[ -v remote ]] || fail "No remote specified in config file" 1
+  local=$name:$image_tag
+  full_remote=$remote/$local
+  docker tag $local $full_remote
+  docker push $full_remote
+  docker rmi $full_remote
+  exit 0
+fi

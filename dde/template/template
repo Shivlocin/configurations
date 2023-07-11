@@ -1,0 +1,14 @@
+#!/bin/bash
+
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+name="linux friendly project name [a-z|_]*"
+pretty_name="human friendly project name [A-Z|a-z| |_]*"
+base_image="ubuntu:latest"
+remote="d9nexus:19443/g99_common/dde"
+setup_script=${SCRIPT_DIR}/setup_template
+workspace=$(dirname ${SCRIPT_DIR})
+user="g99-labuser"
+welcome="\nHello World!\n"
+
+source /opt/g99_common/dde/dde

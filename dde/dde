@@ -1,0 +1,108 @@
+#!/bin/bash
+
+set -u # Unset variables are an error
+
+pushd /opt/g99_common/dde &> /dev/null
+
+source util
+
+# Check to see if docker is installed
+if ! command -v docker &> /dev/null
+then
+    source install_docker
+fi
+
+# Check for required values
+[[ -v name ]]         || fail "The name of the project must be specified in the variable \'name\'" $?
+[[ -v pretty_name ]]  || fail "The display name of the project must be specified in the variable \'pretty_name\'" $?
+[[ -v base_image ]]   || fail "The base image used by the project must be specified in the variable \'base_image\'" $?
+[[ -v setup_script ]] || fail "The setup script used by the project must be specified in the variable \'setup_script\'" $?
+[[ -v workspace ]]    || fail "The workspace used by the project must be specified in the variable \'workspace\'" $?
+
+# Check for optional values
+if [[ ! -v extras ]] 
+then
+    extras="${HOME}/.${name}"
+    [[ -d ${extras} ]] || mkdir ${extras}
+fi
+extras_real=$(realpath ${extras})
+
+if [[ ! -v entrypoint ]]
+then
+    entrypoint="entrypoint.sh"
+fi
+
+if [[ ! -v user ]]
+then
+    user="g99-labuser"
+fi
+
+# Set useful values
+setup_script_base=$(basename ${setup_script})
+setup_script_real=$(realpath ${setup_script})
+dde_home="/home/${user}"
+workspace_base=$(basename ${workspace})
+workspace_real=$(realpath ${workspace})
+dde_workspace="${dde_home}/${workspace_base}"
+display_env=""
+[[ -v DISPLAY ]] && display_env="-e DISPLAY=$DISPLAY"
+ssh_auth_sock=""
+ssh_auth_vol=""
+[[ -v SSH_AUTH_SOCK ]] \
+    && ssh_auth_sock="-e SSH_AUTH_SOCK=$SSH_AUTH_SOCK" \
+    && ssh_auth_vol="-v $(dirname "$SSH_AUTH_SOCK"):$(dirname "$SSH_AUTH_SOCK"):ro"
+
+source cli
+
+# Build the image if needed
+if $rebuild || ! has_image "$name:$image_tag"; then
+  if $rebuild; then
+    source dde_setup
+  elif [[ -v remote ]]; then
+    remote_name=$remote/$name:$image_tag
+    docker pull $remote_name || source dde_setup
+    if docker image inspect $remote_name &> /dev/null; then
+      docker tag $remote_name $name:$image_tag &> /dev/null
+      docker rmi $remote_name &> /dev/null
+    fi
+  else
+    source dde_setup
+  fi
+fi
+
+has_image "$name:$image_tag" || fail "Failed to build required image" 1
+
+# SSH into a running container if needed
+if $start_ssh_session; then
+  sshpass -p $user ssh -o StrictHostKeyChecking=no $user@127.0.0.1 -p $port
+  exit
+fi
+
+echo
+echo -e "\e[34mStarting The ${pretty_name} Development Environment.\e[39m"
+echo "$welcome"
+
+# Run the image
+docker run                                                                     \
+    -it                                                                        \
+    --rm                                                                       \
+    $network                                                                   \
+    --privileged                                                               \
+    --cap-add=SYS_PTRACE --security-opt seccomp=unconfined                     \
+    -e HOST_USER_ID="$(id -u)"                                                 \
+    -e HOST_USER_GID="$(id -g)"                                                \
+    $display_env                                                               \
+    $ssh_auth_sock                                                             \
+    $opt_env_args                                                              \
+    -w ${dde_workspace}                                                        \
+    -v ${workspace_real}:${dde_workspace}                                      \
+    -v ${extras_real}:${dde_home}/host                                         \
+    -v /dev:/dev                                                               \
+    -v /tmp:/tmp                                                               \
+    -v $HOME/.ssh:${dde_home}/.ssh                                             \
+    $ssh_auth_vol                                                              \
+    $container_type                                                            \
+    ${name}:$image_tag                                                         \
+    "${cmd}"
+
+popd &> /dev/null

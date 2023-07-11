@@ -1,0 +1,6 @@
+#!/bin/bash
+
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+sudo mkdir -p /opt/g99_common/dde
+ls $SCRIPT_DIR |grep -v '^\(install\|README.md\|test\)$' |xargs -I {} sudo cp -r {} /opt/g99_common/dde
