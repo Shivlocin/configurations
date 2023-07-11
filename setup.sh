@@ -12,3 +12,10 @@ then
 else
   ln -s "$my_loc/zellij" "$HOME/.config/"
 fi
+
+if [ -d "$HOME/.config/lvim" ]
+then
+  echo -e "\e[33m Lunarvim config directory exists, skipping.\e[0m"
+else
+  ln -s "$my_loc/lunarvim/" "$HOME/.config/lvim"
+fi
