@@ -3,17 +3,16 @@
 Docker Development Environment (DDE) and associated tooling
 
 The goal of this project is to make creating and distributing development
-environments easy. It uses Docker and D9 Nexys to build, package, serve, and use
+environments easy. It uses Docker to build, package, serve, and use
 docker images which encapsulate all aspects of a project's development.
 
 ## Usage
 ### Setting up a project
 ```bash
-git clone git@g99-gitlab:g99_common/dde.git
 cd dde
-./install # Install artifacts to /opt/g99_common/dde
+./install # Install artifacts to /opt/common/dde
 cd <path_to_my_project>/<my_project>
-cp /opt/g99_common/dde/template/* .
+cp /opt/common/dde/template/* .
 mv template <my_project>
 $EDITOR <my_project> # Make requisite edits, details in file
 mv setup_template setup_<my_project>
